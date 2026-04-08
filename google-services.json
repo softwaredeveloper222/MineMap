@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "206917225810",
+    "project_id": "minemap-a8413",
+    "storage_bucket": "minemap-a8413.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:206917225810:android:760a484657c2fc8eb1fe8b",
+        "android_client_info": {
+          "package_name": "com.MineMap"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCeOlVqyTw7apHo7Ya6ZTOvmNkcBxr0F5U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+} 

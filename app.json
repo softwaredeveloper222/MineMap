@@ -1,0 +1,107 @@
+{
+  "expo": {
+    "name": "MineMap",
+    "slug": "MineMap",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/AppIcon.png",
+    "scheme": "minemap",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "jsEngine": "hermes",
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": [
+          "react-native-maps"
+        ]
+      }
+    },
+    "permissions": [
+      "AUDIO_RECORDING"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.MineMap",
+      "icon": "./assets/images/AppIcon_ios.png",
+      "config": {
+        "googleMapsApiKey": "AIzaSyDtKbMcIWXrp1atB4rKFB6kma6ZB0xl1Ec"
+      },
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app uses your location to show nearby stores.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses your location in the background to track deliveries.",
+        "NSMicrophoneUsageDescription": "This app uses your microphone to record audio."
+      }
+    },
+    "android": {
+      "versionCode" : 1,
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDtKbMcIWXrp1atB4rKFB6kma6ZB0xl1Ec"
+        }
+      },
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/AppIcon.png",
+        "backgroundColor": "#1ac7a1"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.MineMap",
+      "googleServicesFile": "./google-services.json",
+      "useNextNotificationsApi": true,
+      "permissions": [
+        "RECORD_AUDIO",
+        "INTERNET",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "WAKE_LOCK"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "15.1",
+            "useFrameworks": "static"
+          }
+        }
+      ],
+      "expo-router",
+      "sentry-expo",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/AppIcon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#1ac7a1"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "This app needs location access to alert you when near saved locations.",
+          "locationAlwaysPermission": "This app needs background location access for proximity alerts.",
+          "locationWhenInUsePermission": "This app needs location access for proximity detection.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ],
+      [
+        "expo-notifications"
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "sentryDsn": "https://a3d0364bcf73b960fc8068bd7cf778a5@o4509879370907648.ingest.us.sentry.io/4510428523134976"
+    }
+  }
+}
