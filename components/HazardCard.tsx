@@ -81,7 +81,7 @@ export const HazardCard = ({ data, style }) => {
                     <View style={styles.locationContainer}>
                         {data?.locations && data?.locations?.length > 0 && <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                             <Ionicons name="location" size={12} color="#00D4AA" />
-                            <Text style={styles.locationText} numberOfLines={2}>{data?.locations[0].address}</Text>
+                            <Text style={styles.locationText} numberOfLines={1}>{data?.locations[0].address}</Text>
                         </View>}
                         {/* {data?.locations?.map(location => {
                             return (<View style={{ flexDirection: 'row', alignItems: 'center' }}>
