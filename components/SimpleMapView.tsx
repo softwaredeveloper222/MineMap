@@ -105,6 +105,49 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
   const [zoomLevel, setZoomLevel] = useState(10);
   const [currentLocation, setCurrentLocation] = useState<LatLngLiteral | null>(null);
   const storedReports = useReportsStore(state => state.reports);
+  const internalMapRef = useRef<any>(null);
+
+  const setMapRef = useCallback((node: any) => {
+    internalMapRef.current = node;
+    if (typeof ref === 'function') {
+      ref(node);
+    } else if (ref) {
+      (ref as React.MutableRefObject<any>).current = node;
+    }
+  }, [ref]);
+
+  const handleClusterPress = useCallback((clusterId: number, coordinate: LatLngLiteral) => {
+    const map = internalMapRef.current;
+    if (!map) return;
+    const engine = typeof map.getClusteringEngine === 'function' ? map.getClusteringEngine() : null;
+    if (engine) {
+      try {
+        const leaves = engine.getLeaves(clusterId, Infinity);
+        const coords: LatLngLiteral[] = leaves
+          .map((l: any) =>
+            normalizeLatLng({
+              latitude: l.geometry.coordinates[1],
+              longitude: l.geometry.coordinates[0],
+            })
+          )
+          .filter((c: LatLngLiteral | null): c is LatLngLiteral => !!c);
+
+        if (coords.length > 1) {
+          map.fitToCoordinates(coords, {
+            edgePadding: { top: 100, right: 100, bottom: 100, left: 100 },
+            animated: true,
+          });
+          return;
+        }
+      } catch {
+        // fall through to camera zoom
+      }
+    }
+    map.animateCamera?.(
+      { center: coordinate, zoom: Math.min((zoomLevel ?? 10) + 2, 20) },
+      { duration: 300 }
+    );
+  }, [zoomLevel]);
 
   // Load reports from global store
   useEffect(() => {
@@ -217,13 +260,14 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
         coordinate={coordinate}
         // tracksViewChanges={false}
         anchor={{ x: 0.5, y: 0.5 }}
+        onPress={() => handleClusterPress(properties.cluster_id, coordinate)}
       >
         <View style={styles.clusterContainer}>
           <Text style={styles.clusterText}>{properties.point_count}</Text>
         </View>
       </Marker>
     );
-  }, []);
+  }, [handleClusterPress]);
 
   // Memoized markers for smooth performance
   const renderMarkers = useMemo(() => {
@@ -406,7 +450,7 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
   return (
     <View style={[style, { flex: 1 }]}>
       <MapView
-        ref={ref}
+        ref={setMapRef}
         provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
         style={styles.map}
         showsUserLocation={showsUserLocation}
@@ -421,7 +465,7 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
         clusterTextColor="#fff"
         radius={50}
         nodeSize={50}
-        minPoints={1}
+        minPoints={2}
         // edgePadding={{ top: 50, right: 50, bottom: 50, left: 50 }} // ADD THIS
 
         renderCluster={renderCluster}
