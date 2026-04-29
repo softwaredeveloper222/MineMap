@@ -4,7 +4,8 @@
       "Bash(node -e \"var b=require\\('./node_modules/jimp-compact/dist/jimp.js'\\); b.read\\(null\\).then\\(\\(\\)=>console.log\\('ok'\\)\\).catch\\(e=>console.log\\('error:', e.message\\)\\)\")",
       "Bash(node -e \"var b=require\\('./node_modules/jimp-compact/dist/jimp.js'\\); b.read\\(Buffer.alloc\\(0\\)\\).then\\(\\(\\)=>console.log\\('ok'\\)\\).catch\\(e=>console.log\\('error:', e.message\\)\\)\")",
       "Bash(file .expo/web/cache/production/images/splash-android/splash-android-ec3a8922554fec6884183814b6d448a0752863a506fa0ddd5b409034d98ddfed-contain/icon_*.png)",
-      "Bash(xxd .expo/web/cache/production/images/splash-android/splash-android-ec3a8922554fec6884183814b6d448a0752863a506fa0ddd5b409034d98ddfed-contain/icon_200.png)"
+      "Bash(xxd .expo/web/cache/production/images/splash-android/splash-android-ec3a8922554fec6884183814b6d448a0752863a506fa0ddd5b409034d98ddfed-contain/icon_200.png)",
+      "Bash(node -e ' *)"
     ]
   }
 }

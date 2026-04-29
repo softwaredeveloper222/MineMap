@@ -37,27 +37,38 @@ export default function HazardDetailsScreen() {
     console.log(hazardType);
     const hazardTypeImage = hazardType === "landmine" ? require('../../assets/images/Bones_detail_high.png') : require('../../assets/images/Accident_detail_high.png');
     const calcDistance = async () => {
+        const locations = HazardInfos?.locations;
+        if (!Array.isArray(locations) || locations.length === 0) {
+            setDistance(NaN);
+            return;
+        }
+
         const curLoc = (await getCurrentLocation())?.coords;
-        let minDistance = Number.MAX_VALUE; // start with a very large number
+        const myLat = Number(curLoc?.latitude);
+        const myLon = Number(curLoc?.longitude);
+        if (!Number.isFinite(myLat) || !Number.isFinite(myLon)) {
+            setDistance(NaN);
+            return;
+        }
 
-        for (const loc of HazardInfos?.locations || []) {
-            const partDistance = await getDistance(
-                loc.latitude,
-                loc.longitude,
-                curLoc?.latitude,
-                curLoc?.longitude,
-                "m"
-            );
-            // console.log(partDistance);
+        let minDistance = Number.POSITIVE_INFINITY;
+        for (const loc of locations) {
+            const lat = Number(loc?.latitude);
+            const lon = Number(loc?.longitude);
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
 
-            if (partDistance < minDistance) {
+            const partDistance = getDistance(lat, lon, myLat, myLon, "m");
+            if (Number.isFinite(partDistance) && partDistance < minDistance) {
                 minDistance = partDistance;
             }
         }
-        const formattedDistance = Number(minDistance.toFixed(2)); // ✅ keep 2 decimals
-        // console.log("Min distance:", formattedDistance);
 
-        setDistance(formattedDistance);
+        if (!Number.isFinite(minDistance)) {
+            setDistance(NaN);
+            return;
+        }
+
+        setDistance(Number(minDistance.toFixed(2)));
     };
 
 
@@ -104,8 +115,8 @@ export default function HazardDetailsScreen() {
                             {/* <Text style={{ marginRight: 'auto', fontSize: 16, fontWeight: 700 }}>{HazardType[HazardInfos?.type]}</Text> */}
                             <Text style={{ marginRight: 'auto', fontSize: 16, fontWeight: 700 }}>{"Explosive Ordnance Accident"}</Text>
                             <View style={styles.locationContainer}>
-                                {HazardInfos?.locations && HazardInfos?.locations?.length > 0 && HazardInfos?.locations?.map(location =>
-                                    <View key={location.address} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                {HazardInfos?.locations && HazardInfos?.locations?.length > 0 && HazardInfos?.locations?.map((location, index) =>
+                                    <View key={`${location.latitude},${location.longitude}-${index}`} style={{ flexDirection: 'row', alignItems: 'center' }}>
                                         <Ionicons name="location" size={12} color="#00D4AA" />
                                         <Text style={styles.locationText}>{location.address}</Text>
                                     </View>)
@@ -127,7 +138,13 @@ export default function HazardDetailsScreen() {
                             </View>
                             <View style={styles.textRow}>
                                 <Text style={{ fontSize: 12 }}>Distance:</Text>
-                                <Text style={{ fontSize: 12, paddingLeft: 3 }}>{!distance ? 'Calculating...' : distance === Number.MAX_VALUE ? 'So far' : `${distance} m`}</Text>
+                                <Text style={{ fontSize: 12, paddingLeft: 3 }}>{
+                                    distance === undefined
+                                        ? 'Calculating...'
+                                        : Number.isNaN(distance)
+                                            ? 'Location unavailable'
+                                            : `${distance} m`
+                                }</Text>
                             </View>
                             <View style={styles.textRow}>
                                 <Text style={{ fontSize: 12 }}>Visibility:</Text>
