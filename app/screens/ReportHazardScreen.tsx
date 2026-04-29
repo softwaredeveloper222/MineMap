@@ -21,6 +21,8 @@ import LocationPicker, { LocationSearchRef } from '@/components/LocationPicker';
 import React, { useRef, useState } from 'react';
 import {
     Alert,
+    KeyboardAvoidingView,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -61,7 +63,15 @@ export default function ReportHazardScreen() {
     const searchFieldRef = useRef<AddressSearchRef>(null);
     const locationSearchFieldRef = useRef<LocationSearchRef>(null);
     const imageSelectorRef = useRef<{ resetImages: () => void }>(null);
+    const scrollViewRef = useRef<ScrollView>(null);
+    const descriptionYRef = useRef(0);
     const [loading, setLoading] = useState(false);
+
+    const handleDescriptionFocus = () => {
+        setTimeout(() => {
+            scrollViewRef.current?.scrollTo({ y: Math.max(0, descriptionYRef.current - 20), animated: true });
+        }, 250);
+    };
 
     const resetForm = () => {
         setSelectedImages([]);
@@ -214,12 +224,18 @@ export default function ReportHazardScreen() {
             <View style={styles.container}>
                 <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right']} >
                     <Header showBack={false} title='Report Hazard' isCommunity={false} />
+                    <KeyboardAvoidingView
+                        style={{ flex: 1 }}
+                        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    >
                     <RoundedView isOverlay={false} style={styles.roundedView}>
                         <ScrollView
+                            ref={scrollViewRef}
                             contentContainerStyle={{
                                 alignItems: 'center',
                             }}
                             showsVerticalScrollIndicator={false}
+                            keyboardShouldPersistTaps="handled"
                             style={styles.scrollView}
                         >
                             <TouchableWithoutFeedback onPress={hideSuggestions} accessible={false}>
@@ -307,13 +323,17 @@ export default function ReportHazardScreen() {
                                         </View>
                                     </View>}
 
-                                    <View style={styles.col}>
+                                    <View
+                                        style={styles.col}
+                                        onLayout={(e) => { descriptionYRef.current = e.nativeEvent.layout.y; }}
+                                    >
                                         <Text style={styles.boldText}>Description about the hazard (Optional)</Text>
                                         <TextInput
                                             style={styles.textArea}
                                             placeholder="Enter details about the hazard"
                                             value={text}
                                             onChangeText={setText}
+                                            onFocus={handleDescriptionFocus}
                                             multiline={true}
                                             numberOfLines={4} // sets initial height
                                         />
@@ -368,6 +388,7 @@ export default function ReportHazardScreen() {
                             </TouchableWithoutFeedback>
                         </ScrollView>
                     </RoundedView>
+                    </KeyboardAvoidingView>
                 </SafeAreaView>
 
             </View>

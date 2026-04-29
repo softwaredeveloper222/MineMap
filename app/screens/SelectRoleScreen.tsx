@@ -43,12 +43,12 @@ export default function SelectRoleScreen() {
                         <ScrollView
                             contentContainerStyle={{
                                 alignItems: 'center',
-                                gap: 40
+                                gap: 20
                             }}
                             showsVerticalScrollIndicator={false}
                         >
                             {/* Header Text */}
-                            <View style={{ alignItems: 'center', marginBottom: 20 }}>
+                            <View style={{ alignItems: 'center', marginBottom: 10 }}>
                                 <Text style={{ color: 'black', fontSize: 22, fontWeight: '600', zIndex: 3 }}>
                                     Who is using this app?
                                 </Text>

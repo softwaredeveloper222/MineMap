@@ -93,7 +93,7 @@ export default function SelectLanguageScreen() {
                                 </View>
                             </View>
 
-                            <View style={{ alignItems: 'flex-start', width: '100%', marginBottom: 100, marginTop: 30, gap: 15 }}>
+                            <View style={{ alignItems: 'flex-start', width: '100%', marginBottom: 50, marginTop: 20, gap: 15 }}>
                                 <Text>
                                     Consent and Privacy
                                 </Text>
