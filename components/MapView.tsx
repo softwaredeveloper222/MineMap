@@ -133,8 +133,8 @@ export const MapView = () => {
     }
     const handleSelectedAddress = (address: any) => {
         const coords = { latitude: address.geometry.location.lat, longitude: address.geometry.location.lng };
+        console.log('[MapView] handleSelectedAddress called, mapRef.current is', mapRef.current ? 'SET' : 'NULL', 'coords:', coords);
         goToLocation(coords);
-        // console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> : \n", address.geometry)
     }
 
     const handleChangeCurrentLocation = (location: any) => {

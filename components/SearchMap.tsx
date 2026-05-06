@@ -51,41 +51,73 @@ const AddressSearch = forwardRef<AddressSearchRef, Props>(
       },
     }));
 
+    const apiKey = 'AIzaSyDtKbMcIWXrp1atB4rKFB6kma6ZB0xl1Ec';
+
     const fetchSuggestions = async (input: string) => {
       if (!input) {
         setSuggestions([]);
         return;
       }
 
-      const apiKey = 'AIzaSyBB6RX00DAk3V80_x9aN8ufsg24Z4QNWFM';
-      let url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
-        input
-      )}&types=address&key=${apiKey}`;
-
       try {
-        const response = await fetch(url);
+        const response = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': apiKey,
+          },
+          body: JSON.stringify({ input }),
+        });
         const data = await response.json();
-        if (data.predictions) {
-          setSuggestions(data.predictions);
+        if (data.error) {
+          console.log('[Places autocomplete] error:', data.error.status, data.error.message);
+          return;
         }
+        const mapped = (data.suggestions ?? [])
+          .filter((s: any) => s.placePrediction)
+          .map((s: any) => ({
+            place_id: s.placePrediction.placeId,
+            description: s.placePrediction.text?.text ?? '',
+          }));
+        setSuggestions(mapped);
       } catch (error) {
-        console.log(error);
+        console.log('[Places autocomplete] fetch error:', error);
       }
     };
 
     const fetchPlaceDetails = async (placeId: string) => {
+      console.log('[Place details] tapped placeId:', placeId);
       setFocusedSearchField(false);
-      const apiKey = 'AIzaSyBB6RX00DAk3V80_x9aN8ufsg24Z4QNWFM';
-      const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${apiKey}`;
       try {
-        const response = await fetch(url);
+        const response = await fetch(`https://places.googleapis.com/v1/places/${placeId}`, {
+          headers: {
+            'X-Goog-Api-Key': apiKey,
+            'X-Goog-FieldMask': 'formattedAddress,location',
+          },
+        });
         const data = await response.json();
-        if (data.result) {
-          setQuery(data.result.formatted_address);
-          onSelectedAddress(data.result);
+        console.log('[Place details] response:', JSON.stringify(data));
+        if (data.error) {
+          console.log('[Place details] error:', data.error.status, data.error.message);
+          return;
+        }
+        if (data.formattedAddress && data.location) {
+          setQuery(data.formattedAddress);
+          onSelectedAddress({
+            formatted_address: data.formattedAddress,
+            geometry: {
+              location: {
+                lat: data.location.latitude,
+                lng: data.location.longitude,
+              },
+            },
+          });
+          console.log('[Place details] onSelectedAddress called with', data.location);
+        } else {
+          console.log('[Place details] missing fields in response');
         }
       } catch (error) {
-        console.log(error);
+        console.log('[Place details] fetch error:', error);
       }
     };
 

@@ -124,6 +124,7 @@ export default function ReportHazardScreen() {
 
     const handleSelectedAddress = (address: any) => {
         const coords = { latitude: address.geometry.location.lat, longitude: address.geometry.location.lng };
+        console.log('[ReportHazardScreen] handleSelectedAddress called, mapRef.current is', mapRef.current ? 'SET' : 'NULL', 'coords:', coords);
         mapRef.current?.animateToRegion({
             ...coords,
             latitudeDelta: 0.01,
@@ -131,7 +132,6 @@ export default function ReportHazardScreen() {
         });
         if (pickMode === 'point') setSelectedLocations([]);
         setSelectedLocations((prev) => [...prev, coords]);
-        // console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> : \n", address.geometry)
     }
 
     const handleSelectedLocation = (location: any) => {

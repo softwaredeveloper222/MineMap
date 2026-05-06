@@ -5,7 +5,14 @@
       "Bash(node -e \"var b=require\\('./node_modules/jimp-compact/dist/jimp.js'\\); b.read\\(Buffer.alloc\\(0\\)\\).then\\(\\(\\)=>console.log\\('ok'\\)\\).catch\\(e=>console.log\\('error:', e.message\\)\\)\")",
       "Bash(file .expo/web/cache/production/images/splash-android/splash-android-ec3a8922554fec6884183814b6d448a0752863a506fa0ddd5b409034d98ddfed-contain/icon_*.png)",
       "Bash(xxd .expo/web/cache/production/images/splash-android/splash-android-ec3a8922554fec6884183814b6d448a0752863a506fa0ddd5b409034d98ddfed-contain/icon_200.png)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "PowerShell(Write-Output \"JAVA_HOME=$env:JAVA_HOME\"; Write-Output \"---\"; Get-ChildItem 'C:\\\\Program Files\\\\' -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'Java|Eclipse|Microsoft|Android|JDK|Zulu|Amazon' } | Select-Object -ExpandProperty FullName; Write-Output \"---\"; Get-ChildItem 'C:\\\\Program Files \\(x86\\)\\\\' -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'Java|JDK' } | Select-Object -ExpandProperty FullName)",
+      "PowerShell($paths = @\\('C:\\\\Program Files\\\\Android', $env:LOCALAPPDATA + '\\\\Android', $env:USERPROFILE + '\\\\AppData\\\\Local\\\\Android', 'C:\\\\Android'\\); foreach \\($p in $paths\\) { if \\(Test-Path $p\\) { Write-Output \"FOUND: $p\"; Get-ChildItem $p -Recurse -Directory -Depth 3 -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'jbr|jre|jdk' } | Select-Object -ExpandProperty FullName } })",
+      "PowerShell(Get-ChildItem D:\\\\ -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'Android|JetBrains|Program' } | Select-Object -ExpandProperty FullName)",
+      "PowerShell(& 'D:\\\\Android Studio\\\\jbr\\\\bin\\\\java.exe' -version)",
+      "PowerShell([Environment]::SetEnvironmentVariable\\('JAVA_HOME', 'D:\\\\Android Studio\\\\jbr', 'User'\\); $env:JAVA_HOME = 'D:\\\\Android Studio\\\\jbr'; $env:Path = \"$env:JAVA_HOME\\\\bin;$env:Path\"; Write-Output \"JAVA_HOME=$env:JAVA_HOME\"; java -version)",
+      "PowerShell($candidates = @\\(\"$env:LOCALAPPDATA\\\\Android\\\\Sdk\", \"D:\\\\Android\\\\Sdk\", \"D:\\\\Android Sdk\", \"D:\\\\Sdk\"\\); foreach \\($c in $candidates\\) { if \\(Test-Path $c\\) { Write-Output \"FOUND SDK: $c\" } }; Write-Output \"ANDROID_HOME=$env:ANDROID_HOME\"; Write-Output \"ANDROID_SDK_ROOT=$env:ANDROID_SDK_ROOT\")",
+      "PowerShell([Environment]::GetEnvironmentVariable\\('JAVA_HOME', 'User'\\))"
     ]
   }
 }

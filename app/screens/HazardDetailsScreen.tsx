@@ -34,41 +34,46 @@ export default function HazardDetailsScreen() {
     const [distance, setDistance] = useState<number>();
     const HazardInfos = reportDetails?.find(detail => detail?.id === id);
     const hazardType = HazardInfos?.type;
-    console.log(hazardType);
+    // console.log(hazard_id);
     const hazardTypeImage = hazardType === "landmine" ? require('../../assets/images/Bones_detail_high.png') : require('../../assets/images/Accident_detail_high.png');
     const calcDistance = async () => {
-        const locations = HazardInfos?.locations;
-        if (!Array.isArray(locations) || locations.length === 0) {
-            setDistance(NaN);
-            return;
-        }
-
-        const curLoc = (await getCurrentLocation())?.coords;
-        const myLat = Number(curLoc?.latitude);
-        const myLon = Number(curLoc?.longitude);
-        if (!Number.isFinite(myLat) || !Number.isFinite(myLon)) {
-            setDistance(NaN);
-            return;
-        }
-
-        let minDistance = Number.POSITIVE_INFINITY;
-        for (const loc of locations) {
-            const lat = Number(loc?.latitude);
-            const lon = Number(loc?.longitude);
-            if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
-
-            const partDistance = getDistance(lat, lon, myLat, myLon, "m");
-            if (Number.isFinite(partDistance) && partDistance < minDistance) {
-                minDistance = partDistance;
+        try {
+            const locations = HazardInfos?.locations;
+            if (!Array.isArray(locations) || locations.length === 0) {
+                setDistance(NaN);
+                return;
             }
-        }
 
-        if (!Number.isFinite(minDistance)) {
+            const curLoc = (await getCurrentLocation())?.coords;
+            const myLat = Number(curLoc?.latitude);
+            const myLon = Number(curLoc?.longitude);
+            if (!Number.isFinite(myLat) || !Number.isFinite(myLon)) {
+                setDistance(NaN);
+                return;
+            }
+
+            let minDistance = Number.POSITIVE_INFINITY;
+            for (const loc of locations) {
+                const lat = Number(loc?.latitude);
+                const lon = Number(loc?.longitude);
+                if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+
+                const partDistance = getDistance(lat, lon, myLat, myLon, "m");
+                if (Number.isFinite(partDistance) && partDistance < minDistance) {
+                    minDistance = partDistance;
+                }
+            }
+
+            if (!Number.isFinite(minDistance)) {
+                setDistance(NaN);
+                return;
+            }
+
+            setDistance(Number(minDistance.toFixed(2)));
+        } catch (error) {
+            console.warn("calcDistance failed:", error);
             setDistance(NaN);
-            return;
         }
-
-        setDistance(Number(minDistance.toFixed(2)));
     };
 
 

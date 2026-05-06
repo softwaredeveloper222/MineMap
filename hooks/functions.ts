@@ -48,19 +48,40 @@ export const getDeviceId = () => {
     return deviceId;
   }
 
-  export const getAddressFromLocation = async (latitude: number, longitude: number) => {
-    try {
-        let [reverseGeocodedAddress] = await Location.reverseGeocodeAsync({
-            latitude,
-            longitude,
-        });
-
-        if (reverseGeocodedAddress) {
-            return reverseGeocodedAddress.formattedAddress
+  export const getAddressFromLocation = async (
+    latitude: number,
+    longitude: number,
+    retries = 2
+  ): Promise<string | undefined> => {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const [result] = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (!result) return undefined;
+        return (
+          result.formattedAddress ||
+          [result.name, result.street, result.city, result.region, result.country]
+            .filter(Boolean)
+            .join(', ')
+        );
+      } catch (error: any) {
+        const message = String(error?.message ?? error);
+        const lower = message.toLowerCase();
+        const isTransient =
+          message.includes('DEADLINE_EXCEEDED') ||
+          lower.includes('timeout') ||
+          lower.includes('deadobjectexception') ||
+          lower.includes('ioexception');
+        if (attempt < retries && isTransient) {
+          await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+          continue;
         }
-    } catch (error) {
-        console.warn("Error in reverse geocoding:", error);
+        if (!isTransient) {
+          console.warn('Error in reverse geocoding:', error);
+        }
+        return undefined;
+      }
     }
+    return undefined;
   }
 
   export const getZoomLevel = (latitudeDelta: number) => {
@@ -176,12 +197,20 @@ export function getDistance(
 }
 
 export const getCurrentLocation = async () => {
-  let { status } = await Location.requestForegroundPermissionsAsync();
-  if (status !== "granted") {
-      // console.log("Permission to access location was denied");
+  try {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== "granted") {
       return;
+    }
+
+    const lastKnown = await Location.getLastKnownPositionAsync();
+    if (lastKnown) return lastKnown;
+
+    return await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.Balanced,
+    });
+  } catch (error) {
+    console.warn("getCurrentLocation failed:", error);
+    return;
   }
-  // Get current location
-  let loc = await Location.getCurrentPositionAsync({});
-  return loc;
 }
