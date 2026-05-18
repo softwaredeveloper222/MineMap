@@ -199,18 +199,23 @@ export function getDistance(
 export const getCurrentLocation = async () => {
   try {
     const { status } = await Location.requestForegroundPermissionsAsync();
+    console.log('[getCurrentLocation] permission status:', status);
     if (status !== "granted") {
       return;
     }
 
     const lastKnown = await Location.getLastKnownPositionAsync();
-    if (lastKnown) return lastKnown;
+    if (lastKnown) {
+      console.log('[getCurrentLocation] returning last-known position');
+      return lastKnown;
+    }
 
+    console.log('[getCurrentLocation] requesting fresh position (Balanced accuracy)');
     return await Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.Balanced,
     });
   } catch (error) {
-    console.warn("getCurrentLocation failed:", error);
+    console.warn('[getCurrentLocation] failed:', error);
     return;
   }
 }

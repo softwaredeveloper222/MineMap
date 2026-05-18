@@ -32,18 +32,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const unsubscribe = onAuthStateChanged(
       auth,
       async (currentUser) => {
-        // console.log('[authContext] currentUser:', currentUser?.email ?? 'none');
+        console.log('[authContext] onAuthStateChanged fired. user=', currentUser?.email ?? 'none');
         if (currentUser) {
-          // const userRole = await getUserRoleById(currentUser.uid);
-          const userInfo = await getUserInfo(currentUser.uid);
-          setUserRole(userInfo.role);
-          setUserInfo(userInfo);
-          setUserId(currentUser.uid);
-          setUser(currentUser);
-          setLoading(false);
-          clearTimeout(timeoutId);
-          router.replace('/screens/HomeScreen');
-          // router.replace('/screens/ManageAccountScreen');
+          try {
+            const userInfo: any = await getUserInfo(currentUser.uid);
+            if (userInfo) {
+              setUserRole(userInfo.role);
+              setUserInfo(userInfo);
+            } else {
+              console.warn('[authContext] No user document for uid:', currentUser.uid);
+            }
+            setUserId(currentUser.uid);
+            setUser(currentUser);
+          } catch (e) {
+            console.warn('[authContext] Failed to load user info:', e);
+          } finally {
+            setLoading(false);
+            clearTimeout(timeoutId);
+            console.log('[authContext] Navigating to /screens/HomeScreen');
+            router.replace('/screens/HomeScreen');
+          }
         } else {
           setLoading(false);
           clearTimeout(timeoutId);

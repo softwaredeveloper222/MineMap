@@ -26,20 +26,49 @@ export default function SelectLanguageScreen() {
     const [loading, setLoading] = useState(false);
 
     const onPress = async () => {
+        console.log('[SelectLanguage] Continue pressed. userRole=', userRole, 'language=', selectedLanguage);
         if (userRole === 'community') {
             setLoading(true);
-            const userId = `${(await getDeviceId() as string)}@community.com`;
-            // setUserId(userId as string);
-            // setLoading(false);
-            const { user, error }: { user: any, error: any } = await signUp(userId, CommunityPassword);
-            if (error) {
-                if (error?.message.includes('already')) {
-                    await signIn(userId, CommunityPassword);
-                    setLoading(false);
+            try {
+                let deviceId: string | null = null;
+                try {
+                    deviceId = (await getDeviceId()) as string | null;
+                    console.log('[SelectLanguage] getDeviceId returned:', deviceId);
+                } catch (e) {
+                    console.warn('[SelectLanguage] getDeviceId THREW:', e);
                 }
-            } else {
-                await createUserDocument(user, 'community', selectedLanguage);
-                await signIn(userId, CommunityPassword);
+                if (!deviceId) {
+                    deviceId = `fallback-${Math.random().toString(36).slice(2, 12)}`;
+                    console.log('[SelectLanguage] using fallback deviceId:', deviceId);
+                }
+                const userId = `${deviceId}@community.com`;
+                console.log('[SelectLanguage] Attempting signUp for', userId);
+
+                const signUpResult: any = await signUp(userId, CommunityPassword);
+                if (signUpResult.error) {
+                    if (signUpResult.error?.message?.includes('already')) {
+                        console.log('[SelectLanguage] User exists, signing in');
+                        const signInResult: any = await signIn(userId, CommunityPassword);
+                        if (signInResult.error) {
+                            console.warn('[SelectLanguage] signIn failed:', signInResult.error);
+                            return;
+                        }
+                        await createUserDocument(signInResult.user, 'community', selectedLanguage);
+                    } else {
+                        console.warn('[SelectLanguage] signUp failed:', signUpResult.error);
+                        return;
+                    }
+                } else {
+                    console.log('[SelectLanguage] signUp succeeded, creating user doc + signing in');
+                    await createUserDocument(signUpResult.user, 'community', selectedLanguage);
+                    const signInResult: any = await signIn(userId, CommunityPassword);
+                    if (signInResult.error) {
+                        console.warn('[SelectLanguage] signIn after signUp failed:', signInResult.error);
+                        return;
+                    }
+                }
+                console.log('[SelectLanguage] Auth complete, waiting for authContext to navigate');
+            } finally {
                 setLoading(false);
             }
         } else {

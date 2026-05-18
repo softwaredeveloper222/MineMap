@@ -41,7 +41,7 @@ export const MapView = () => {
         { latitude: number; longitude: number }[]
     >([]);
     const [selectedAddress, setSelectedAddress] = useState('');
-    const [currentLocation, setCurrentLocation] = useState('');
+    const [currentLocation, setCurrentLocation] = useState<any>(null);
     const [filteredReports, setFilteredReports] = useState([]);
     const [showLayers, setShowLayers] = useState(false);
     const [mapType, setMapType] = useState<"standard" | "satellite" | "terrain" | "hybrid">("standard");
@@ -165,12 +165,26 @@ export const MapView = () => {
     }
 
     const handleCurrentLocation = async () => {
-        // const loc = await getCurrentLocation() as any;
-        // setCurrentLocation(loc?.coords);
-        filterReports(currentLocation?.coords);
-        mapRef.current?.animateToRegion({
-            latitude: currentLocation.coords.latitude,
-            longitude: currentLocation.coords.longitude,
+        console.log('[MapView] My-location pressed. currentLocation has coords?', !!currentLocation?.coords);
+        let coords = currentLocation?.coords;
+        if (!coords?.latitude || !coords?.longitude) {
+            console.log('[MapView] No cached coords, requesting fresh location');
+            const loc = await getCurrentLocation();
+            coords = loc?.coords;
+            if (!coords?.latitude || !coords?.longitude) {
+                console.warn('[MapView] Could not get current location (permission denied or unavailable)');
+                return;
+            }
+            setCurrentLocation(loc as any);
+        }
+        filterReports(coords);
+        if (!mapRef.current) {
+            console.warn('[MapView] mapRef is null - map not mounted, cannot pan');
+            return;
+        }
+        mapRef.current.animateToRegion({
+            latitude: coords.latitude,
+            longitude: coords.longitude,
             latitudeDelta: 0.01,
             longitudeDelta: 0.01,
         });
@@ -294,7 +308,12 @@ export const MapView = () => {
                             </View>
                         </TouchableOpacity>
                     </View>
-                    <TouchableOpacity style={styles.controlButton} activeOpacity={0.8} onPress={handleCurrentLocation}>
+                    <TouchableOpacity
+                        style={styles.controlButton}
+                        activeOpacity={0.8}
+                        onPress={handleCurrentLocation}
+                        onPressIn={() => console.log('[MapView] my-location button onPressIn')}
+                    >
                         <View style={styles.controlButtonInner}>
                             <Point width={20} height={20} color="#00D4AA" />
                         </View>

@@ -104,8 +104,22 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
   const [region, setRegion] = useState(initialRegion);
   const [zoomLevel, setZoomLevel] = useState(10);
   const [currentLocation, setCurrentLocation] = useState<LatLngLiteral | null>(null);
+  const [spiderfied, setSpiderfied] = useState<{ center: LatLngLiteral; originalCoords: LatLngLiteral[] } | null>(null);
   const storedReports = useReportsStore(state => state.reports);
   const internalMapRef = useRef<any>(null);
+  const superClusterRef = useRef<any>(null);
+
+  // Spider expansion: when clustered reports are close enough that zoom alone
+  // won't separate them, fan them out radially so they're individually tappable.
+  const SAME_POINT_THRESHOLD = 0.0005; // ~50 meters - matches typical cluster radius at max zoom
+  const SPIDER_RADIUS_DEG = 0.0005; // ~55 meters - ensures spider fan exceeds cluster radius
+  const getSpiderOffset = (index: number, total: number, center: LatLngLiteral): LatLngLiteral => {
+    const angle = (2 * Math.PI * index) / total - Math.PI / 2;
+    return {
+      latitude: center.latitude + Math.cos(angle) * SPIDER_RADIUS_DEG,
+      longitude: center.longitude + Math.sin(angle) * SPIDER_RADIUS_DEG,
+    };
+  };
 
   const setMapRef = useCallback((node: any) => {
     internalMapRef.current = node;
@@ -117,9 +131,14 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
   }, [ref]);
 
   const handleClusterPress = useCallback((clusterId: number, coordinate: LatLngLiteral) => {
+    console.log('[SimpleMapView] handleClusterPress entered. id=', clusterId);
     const map = internalMapRef.current;
-    if (!map) return;
-    const engine = typeof map.getClusteringEngine === 'function' ? map.getClusteringEngine() : null;
+    if (!map) {
+      console.warn('[SimpleMapView] handleClusterPress: map ref is null');
+      return;
+    }
+    const engine = superClusterRef.current;
+    console.log('[SimpleMapView] clustering engine?', !!engine);
     if (engine) {
       try {
         const leaves = engine.getLeaves(clusterId, Infinity);
@@ -131,8 +150,25 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
             })
           )
           .filter((c: LatLngLiteral | null): c is LatLngLiteral => !!c);
+        console.log('[SimpleMapView] leaves count=', leaves.length, 'coords=', JSON.stringify(coords));
 
         if (coords.length > 1) {
+          const allAtSamePoint = coords.every(c =>
+            Math.abs(c.latitude - coords[0].latitude) < SAME_POINT_THRESHOLD &&
+            Math.abs(c.longitude - coords[0].longitude) < SAME_POINT_THRESHOLD
+          );
+          console.log('[SimpleMapView] allAtSamePoint?', allAtSamePoint);
+
+          if (allAtSamePoint) {
+            console.log('[SimpleMapView] spiderfying', coords.length, 'markers at', coords[0]);
+            map.animateCamera?.(
+              { center: coordinate, zoom: 19 },
+              { duration: 300 }
+            );
+            setSpiderfied({ center: coords[0], originalCoords: coords });
+            return;
+          }
+
           map.fitToCoordinates(coords, {
             edgePadding: { top: 100, right: 100, bottom: 100, left: 100 },
             animated: true,
@@ -147,7 +183,7 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
       { center: coordinate, zoom: Math.min((zoomLevel ?? 10) + 2, 20) },
       { duration: 300 }
     );
-  }, [zoomLevel]);
+  }, [zoomLevel, reports]);
 
   // Load reports from global store
   useEffect(() => {
@@ -260,7 +296,10 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
         coordinate={coordinate}
         // tracksViewChanges={false}
         anchor={{ x: 0.5, y: 0.5 }}
-        onPress={() => handleClusterPress(properties.cluster_id, coordinate)}
+        onPress={() => {
+          console.log('[SimpleMapView] Cluster tapped. id=', properties.cluster_id, 'count=', properties.point_count, 'coord=', coordinate);
+          handleClusterPress(properties.cluster_id, coordinate);
+        }}
       >
         <View style={styles.clusterContainer}>
           <Text style={styles.clusterText}>{properties.point_count}</Text>
@@ -276,6 +315,22 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
 
     // const markers: any[] = [];
     const markers: React.ReactNode[] = [];
+
+    // Spider slot allocator: each marker at the spidered center gets the next free fan slot.
+    // Slots are assigned in the order markers are rendered.
+    let spiderSlotsUsed = 0;
+    const maybeSpiderOffset = (coord: LatLngLiteral): LatLngLiteral => {
+      if (!spiderfied) return coord;
+      const matchesCenter =
+        Math.abs(coord.latitude - spiderfied.center.latitude) < SAME_POINT_THRESHOLD &&
+        Math.abs(coord.longitude - spiderfied.center.longitude) < SAME_POINT_THRESHOLD;
+      if (!matchesCenter) return coord;
+      const total = spiderfied.originalCoords.length;
+      if (spiderSlotsUsed >= total) return coord;
+      const offset = getSpiderOffset(spiderSlotsUsed, total, spiderfied.center);
+      spiderSlotsUsed++;
+      return offset;
+    };
     // User location pulse marker
     if (currentLocation) {
       markers.push(
@@ -368,11 +423,11 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
         if (coords.length === 0) return;
         const reportId = report.id || report._id || `report-${idx}`;
         if (report.pickMode === 'point' && coords[0]) {
-          // Point marker
+          const markerCoord = maybeSpiderOffset(coords[0]);
           markers.push(
             <Marker
               key={`report-point-${reportId}`}
-              coordinate={coords[0]}
+              coordinate={markerCoord}
               tracksViewChanges={false}
               // anchor={{ x: 0.5, y: 0.5 }}
               title={report.locations[0].address || "Reported Location"}
@@ -386,7 +441,7 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
             markers.push(
               <Circle
                 key={`circle-${reportId}`}
-                center={coords[0]}
+                center={markerCoord}
                 radius={100}
                 strokeWidth={2}
                 strokeColor="rgba(255, 0, 0, 0.5)"
@@ -426,10 +481,11 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
         // Only show vertex markers for paths, not polygons
         if (report.pickMode === 'path') {
           coords.forEach((p, i) => {
+            const vertexCoord = maybeSpiderOffset(p);
             markers.push(
               <Marker
                 key={`report-marker-${reportId}-${i}`}
-                coordinate={p}
+                coordinate={vertexCoord}
                 tracksViewChanges={false}
                 onPress={() => onSelectPoint?.(report)}
               />
@@ -445,12 +501,14 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
     });
 
     return markers.filter(Boolean);
-  }, [mapReady, currentLocation, pointers, pickMode, visibleReports, zoomLevel]);
+  }, [mapReady, currentLocation, pointers, pickMode, visibleReports, zoomLevel, spiderfied]);
 
   return (
     <View style={[style, { flex: 1 }]}>
       <MapView
         ref={setMapRef}
+        mapRef={setMapRef}
+        superClusterRef={superClusterRef}
         provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
         style={styles.map}
         showsUserLocation={showsUserLocation}
@@ -475,6 +533,13 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
         onRegionChangeComplete={(r) => {
           setRegion(r);
           setZoomLevel(getZoomLevel(r.latitudeDelta));
+          if (spiderfied) {
+            const dx = r.latitude - spiderfied.center.latitude;
+            const dy = r.longitude - spiderfied.center.longitude;
+            if (Math.sqrt(dx * dx + dy * dy) > 0.002) {
+              setSpiderfied(null);
+            }
+          }
         }}
         // loadingEnabled={true}
         // loadingIndicatorColor="#ff6600"
