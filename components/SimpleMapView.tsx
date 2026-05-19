@@ -331,6 +331,38 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
       spiderSlotsUsed++;
       return offset;
     };
+
+    // Auto-offset duplicate-coord point reports so they naturally separate at high zoom.
+    // Offset is small (~16m) so they still cluster at lower zoom but appear as distinct
+    // pins when zoomed in past the cluster radius.
+    const AUTO_OFFSET_DEG = 0.00015; // ~16 meters
+    const BUCKET_DEG = 0.00005;       // ~5 meters - grouping precision
+    const bucketKey = (c: LatLngLiteral) =>
+      `${Math.round(c.latitude / BUCKET_DEG)}_${Math.round(c.longitude / BUCKET_DEG)}`;
+
+    const autoOffsetMap = new Map<string, LatLngLiteral>();
+    {
+      const buckets = new Map<string, { id: string; coord: LatLngLiteral }[]>();
+      visibleReports.forEach((report, idx) => {
+        if (!report?.locations || report.pickMode !== 'point') return;
+        const cs = toLatLngArray(report.locations);
+        if (cs.length === 0) return;
+        const reportId = report.id || report._id || `report-${idx}`;
+        const key = bucketKey(cs[0]);
+        if (!buckets.has(key)) buckets.set(key, []);
+        buckets.get(key)!.push({ id: reportId, coord: cs[0] });
+      });
+      buckets.forEach((items) => {
+        if (items.length <= 1) return;
+        items.forEach((item, i) => {
+          const angle = (2 * Math.PI * i) / items.length - Math.PI / 2;
+          autoOffsetMap.set(item.id, {
+            latitude: item.coord.latitude + Math.cos(angle) * AUTO_OFFSET_DEG,
+            longitude: item.coord.longitude + Math.sin(angle) * AUTO_OFFSET_DEG,
+          });
+        });
+      });
+    }
     // User location pulse marker
     if (currentLocation) {
       markers.push(
@@ -423,7 +455,8 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
         if (coords.length === 0) return;
         const reportId = report.id || report._id || `report-${idx}`;
         if (report.pickMode === 'point' && coords[0]) {
-          const markerCoord = maybeSpiderOffset(coords[0]);
+          const baseCoord = autoOffsetMap.get(reportId) ?? coords[0];
+          const markerCoord = maybeSpiderOffset(baseCoord);
           markers.push(
             <Marker
               key={`report-point-${reportId}`}
