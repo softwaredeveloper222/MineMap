@@ -105,6 +105,10 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
   const [zoomLevel, setZoomLevel] = useState(10);
   const [currentLocation, setCurrentLocation] = useState<LatLngLiteral | null>(null);
   const [spiderfied, setSpiderfied] = useState<{ center: LatLngLiteral; originalCoords: LatLngLiteral[] } | null>(null);
+  // Tracks report ids whose pins are currently rendered as individual markers
+  // (not collapsed into a cluster badge). Circles render only for these so the
+  // hazard "fan" appears exactly when the pin appears.
+  const [unclusteredReportIds, setUnclusteredReportIds] = useState<Set<string>>(new Set());
   const storedReports = useReportsStore(state => state.reports);
   const internalMapRef = useRef<any>(null);
   const superClusterRef = useRef<any>(null);
@@ -157,15 +161,15 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
             Math.abs(c.latitude - coords[0].latitude) < SAME_POINT_THRESHOLD &&
             Math.abs(c.longitude - coords[0].longitude) < SAME_POINT_THRESHOLD
           );
-          console.log('[SimpleMapView] allAtSamePoint?', allAtSamePoint);
 
+          // Tap behavior mirrors zoom-in: pins are rendered at their real coordinates.
+          // For truly co-located reports (within ~5m), autoOffsetMap fans them slightly
+          // so they stay visually distinct without showing them at fake locations.
           if (allAtSamePoint) {
-            console.log('[SimpleMapView] spiderfying', coords.length, 'markers at', coords[0]);
             map.animateCamera?.(
-              { center: coordinate, zoom: 19 },
+              { center: coords[0], zoom: 19 },
               { duration: 300 }
             );
-            setSpiderfied({ center: coords[0], originalCoords: coords });
             return;
           }
 
@@ -250,6 +254,27 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
     setMapReady(true);
     onGotoCurrentLocation?.();
   };
+
+  // Called by the clustering library whenever the visible set of markers/clusters changes.
+  // We extract identifiers of points that are rendered as individual pins (not collapsed
+  // into a cluster) so the Circle overlays can be gated on actual visibility of the pin.
+  const handleMarkersChange = useCallback((libMarkers: any[]) => {
+    const ids = new Set<string>();
+    libMarkers?.forEach((m: any) => {
+      const props = m?.properties;
+      if (props && !props.cluster && typeof props.identifier === 'string') {
+        ids.add(props.identifier);
+      }
+    });
+    setUnclusteredReportIds((prev) => {
+      if (prev.size === ids.size) {
+        let same = true;
+        prev.forEach((v) => { if (!ids.has(v)) same = false; });
+        if (same) return prev;
+      }
+      return ids;
+    });
+  }, []);
 
   // Filter visible markers (optional optimization)
   const filterVisibleReports = useCallback((reportsList, region) => {
@@ -370,6 +395,7 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
           key="user-location"
           coordinate={currentLocation}
           anchor={{ x: 0.5, y: 0.5 }}
+          {...({ cluster: false } as any)}
         >
           <View style={styles.pulseContainer}>
             <Animated.View
@@ -402,6 +428,7 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
             pinColor="blue"
             title="Selected Location"
             description={selectedAddress || "Fetching address..."}
+            {...({ cluster: false } as any)}
           />
         );
       }
@@ -440,7 +467,7 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
               pinColor="blue"
               title={`Point ${i + 1}`}
               description={selectedAddress || "Fetching address..."}
-
+              {...({ cluster: false } as any)}
             />
           );
         });
@@ -457,9 +484,11 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
         if (report.pickMode === 'point' && coords[0]) {
           const baseCoord = autoOffsetMap.get(reportId) ?? coords[0];
           const markerCoord = maybeSpiderOffset(baseCoord);
+          const markerIdentifier = `report-point-${reportId}`;
           markers.push(
             <Marker
-              key={`report-point-${reportId}`}
+              key={markerIdentifier}
+              identifier={markerIdentifier}
               coordinate={markerCoord}
               tracksViewChanges={false}
               // anchor={{ x: 0.5, y: 0.5 }}
@@ -469,8 +498,9 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
             />
           );
 
-          // Circle overlay (only at high zoom)
-          if (zoomLevel >= CIRCLE_VISIBILITY_ZOOM) {
+          // Circle overlay: only when this pin is actually visible as an individual
+          // marker (not collapsed into a cluster badge). The fan appears with the pin.
+          if (zoomLevel >= CIRCLE_VISIBILITY_ZOOM && unclusteredReportIds.has(markerIdentifier)) {
             markers.push(
               <Circle
                 key={`circle-${reportId}`}
@@ -534,7 +564,7 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
     });
 
     return markers.filter(Boolean);
-  }, [mapReady, currentLocation, pointers, pickMode, visibleReports, zoomLevel, spiderfied]);
+  }, [mapReady, currentLocation, pointers, pickMode, visibleReports, zoomLevel, spiderfied, unclusteredReportIds]);
 
   return (
     <View style={[style, { flex: 1 }]}>
@@ -557,11 +587,15 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
         radius={50}
         nodeSize={50}
         minPoints={2}
+        // Clustering stops above this zoom — when the user zooms past 18,
+        // every pin renders individually no matter how close they are.
+        maxZoom={18}
         // edgePadding={{ top: 50, right: 50, bottom: 50, left: 50 }} // ADD THIS
 
         renderCluster={renderCluster}
         // tracksViewChanges={false}
         spiralEnabled
+        onMarkersChange={handleMarkersChange}
         onMapReady={handleMapReady}
         onRegionChangeComplete={(r) => {
           setRegion(r);
