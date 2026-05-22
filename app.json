@@ -35,7 +35,7 @@
       }
     },
     "android": {
-      "versionCode" : 1,
+      "versionCode": 1,
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyDtKbMcIWXrp1atB4rKFB6kma6ZB0xl1Ec"
@@ -56,7 +56,12 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION",
         "FOREGROUND_SERVICE",
-        "WAKE_LOCK"
+        "WAKE_LOCK",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION"
       ]
     },
     "web": {
@@ -103,7 +108,12 @@
       "typedRoutes": true
     },
     "extra": {
-      "sentryDsn": "https://a3d0364bcf73b960fc8068bd7cf778a5@o4509879370907648.ingest.us.sentry.io/4510428523134976"
-    }
+      "sentryDsn": "https://a3d0364bcf73b960fc8068bd7cf778a5@o4509879370907648.ingest.us.sentry.io/4510428523134976",
+      "router": {},
+      "eas": {
+        "projectId": "62c1d064-b5f9-4095-939b-346216a40d19"
+      }
+    },
+    "owner": "bingo.dev"
   }
 }
