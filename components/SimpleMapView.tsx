@@ -17,7 +17,7 @@ import {
   ViewStyle,
   Text,
 } from 'react-native';
-import { Marker, Circle, Polyline, Polygon, PROVIDER_GOOGLE, PROVIDER_DEFAULT, MapPressEvent, MapViewProps, Region } from 'react-native-maps';
+import { Marker, Polyline, Polygon, PROVIDER_GOOGLE, PROVIDER_DEFAULT, MapPressEvent, MapViewProps, Region } from 'react-native-maps';
 import MapView from 'react-native-map-clustering';
 import * as Location from "expo-location";
 import { getZoomLevel } from '@/hooks/functions';
@@ -497,21 +497,6 @@ export const SimpleMapView = forwardRef<MapView, SimpleMapViewProps>(({
               onPress={() => onSelectPoint?.(report)}
             />
           );
-
-          // Circle overlay: only when this pin is actually visible as an individual
-          // marker (not collapsed into a cluster badge). The fan appears with the pin.
-          if (zoomLevel >= CIRCLE_VISIBILITY_ZOOM && unclusteredReportIds.has(markerIdentifier)) {
-            markers.push(
-              <Circle
-                key={`circle-${reportId}`}
-                center={markerCoord}
-                radius={100}
-                strokeWidth={2}
-                strokeColor="rgba(255, 0, 0, 0.5)"
-                fillColor="rgba(255, 0, 0, 0.2)"
-              />
-            );
-          }
         }
 
         if (report.pickMode === 'path' && coords.length > 1 && zoomLevel >= CIRCLE_VISIBILITY_ZOOM) {

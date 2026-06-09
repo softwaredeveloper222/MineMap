@@ -193,7 +193,8 @@ export const MapView = () => {
     const sheetRef = useRef(null);
 
     // Snap points define how far the sheet can expand
-    const isVillageReport = popupReport?.type === 'landmine' || popupReport?.type === 'accidents';
+    console.log(popupReport?.type);
+    const isVillageReport = popupReport?.type === 'landmine' || popupReport?.type === 'accident';
     const snapPoints = useMemo(() => isVillageReport ? ['45%'] : popupReport?.pickMode === 'polygon' ? ['30%'] : ['25%'], [popupReport, isVillageReport]);
 
     const handleOpen = useCallback(() => {
